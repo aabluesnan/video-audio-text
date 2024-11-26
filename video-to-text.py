@@ -1,46 +1,39 @@
-#Step 1: Extract Audio from Video
-from moviepy.editor import VideoFileClip
-import os
 import whisper
 import time
-
-def extract_audio_from_video(video_path, audio_output_path):
-    video_clip = VideoFileClip(video_path)
-    audio_clip = video_clip.audio
-    audio_clip.write_audiofile(audio_output_path)
+import os
 
 # Set the directory path
 current_dir = r"D:\4-Doing\Documents_Max"
-video_path = os.path.join(current_dir, "EducatonDirection.mp4")  
-audio_output_path = os.path.join(current_dir, "EducatonDirection.wav")  # Extracted audio file path
+video_path = os.path.join(current_dir, "EducatonDirection.mp4")  # Video file path
 
-extract_audio_from_video(video_path, audio_output_path)
+# Dynamically select Whisper model based on system resources
+model_size = "base" if os.cpu_count() <= 4 else "large"
+model = whisper.load_model(model_size)
+print(f"Using Whisper model: {model_size}")
 
-#Step 2: Convert Audio to Text
-# Load Whisper model, 'large' model has higher accuracy and supports different languages
-model = whisper.load_model("large")
-
-# Set the audio file path
-audio_file = os.path.join(current_dir, "EducatonDirection.wav")  # .wav file path
-
-print(f"\nBegin to transcribe audio: {os.path.basename(audio_file)}")
+# Start transcription
+print(f"\nBegin to transcribe video: {os.path.basename(video_path)}")
 print("Transcribing, please be patient...")
 
 start_time = time.time()
 
-# Use verbose=True to display built-in progress information    
-result = model.transcribe(
-    audio_file, 
-    language="zh",  # Language code, e.g., "en-US", "zh-CN", "fr-FR", "es-ES", etc.
-    verbose=True
-)
+try:
+    # Transcribe directly from the video file
+    result = model.transcribe(
+        video_path, 
+        language="zh",  # Specify language (or omit for auto-detection)
+        verbose=True
+    )
 
-# Save the recognition result to a text file
-output_file = os.path.join(current_dir, "EducatonDirection.txt")
-with open(output_file, "w", encoding="utf-8") as file:
-    file.write(result["text"])
+    # Save the transcription result
+    output_file = os.path.join(current_dir, "EducatonDirection.txt")
+    with open(output_file, "w", encoding="utf-8") as file:
+        file.write(result["text"])
 
-total_time = time.time() - start_time
-print(f"\nTranscribing completed!") 
-print(f"Total time: {total_time:.1f} seconds")
-print(f"Result saved to: {output_file}")
+    total_time = time.time() - start_time
+    print(f"\nTranscribing completed!") 
+    print(f"Total time: {total_time:.1f} seconds")
+    print(f"Result saved to: {output_file}")
+
+except Exception as e:
+    print(f"An error occurred during transcription: {e}")
