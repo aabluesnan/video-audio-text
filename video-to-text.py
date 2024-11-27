@@ -116,6 +116,46 @@ def process_video_in_segments(video_path, output_dir, segment_duration=1200, sta
     except Exception as e:
         print(f"An error occurred during processing of the video: {e}")
 
+def merge_transcriptions(output_dir, base_filename, start_segment=1, end_segment=None):
+    """
+    合并所有转录文件为一个文档
+    
+    Args:
+        output_dir: 输出目录
+        base_filename: 基础文件名（如 'EducatonDirection'）
+        start_segment: 起始段号
+        end_segment: 结束段号（如果为None，则自动检测）
+    """
+    try:
+        # 确定最后一个段落号
+        if end_segment is None:
+            segment = start_segment
+            while os.path.exists(os.path.join(output_dir, f"{base_filename}_segment_{segment}.txt")):
+                segment += 1
+            end_segment = segment - 1
+
+        # 合并文件名
+        merged_filename = os.path.join(output_dir, f"{base_filename}_merged.txt")
+        
+        print(f"\nMerging transcriptions from segment {start_segment} to {end_segment}")
+        
+        with open(merged_filename, 'w', encoding='utf-8') as outfile:
+            for segment in range(start_segment, end_segment + 1):
+                segment_file = os.path.join(output_dir, f"{base_filename}_segment_{segment}.txt")
+                if os.path.exists(segment_file):
+                    with open(segment_file, 'r', encoding='utf-8') as infile:
+                        content = infile.read().strip()
+                        outfile.write(f"\n=== Segment {segment} ===\n\n")
+                        outfile.write(content)
+                        outfile.write('\n\n')
+                else:
+                    print(f"Warning: Segment {segment} file not found")
+        
+        print(f"Merged transcription saved to: {merged_filename}")
+        
+    except Exception as e:
+        print(f"Error merging transcriptions: {e}")
+
 # Set parameters
 output_dir = current_dir
 segment_duration = 20 * 60  # 20 minutes in seconds
@@ -124,4 +164,10 @@ start_from = 0  # 设置开始时间（秒），比如要从30分钟处开始，
 # Begin processing
 print(f"\nBegin processing video: {os.path.basename(video_path)}")
 process_video_in_segments(video_path, output_dir, segment_duration, start_from)
-print("Processing complete!")
+
+# 合并所有转录文件
+base_filename = "EducatonDirection"
+start_segment = (start_from // segment_duration) + 1
+merge_transcriptions(output_dir, base_filename, start_segment)
+
+print("All processing complete!")
